@@ -1,0 +1,13 @@
+comedies
+action films
+most popular
+adventure films
+musicals
+dramas
+romantic films
+Horror
+Mystery
+Thriller
+Western
+Fantasy
+fiction
