@@ -1,15 +1,14 @@
-// Databricks notebook source
-// MAGIC %scala
-// MAGIC // import the text to DF
-// MAGIC val movies =sc.textFile("/FileStore/tables/plot_summaries.txt")
-// MAGIC   .map(_.split("	"))
-// MAGIC   .map(c => (c(0),c(1)))
-// MAGIC   .toDF("movieID","description")
-// MAGIC val terms = spark.read.option("header","false").csv("/FileStore/tables/user_terms.txt")
-// MAGIC movies.count()  // the total number of movieID is 42306=N, used for computer tf-idf weight
+
+ // import the text to DF
+ val movies =sc.textFile("/FileStore/tables/plot_summaries.txt")
+           .map(_.split("	"))
+           .map(c => (c(0),c(1)))
+           .toDF("movieID","description")
+ val terms = spark.read.option("header","false").csv("/FileStore/tables/user_terms.txt")
+ movies.count()  // the total number of movieID is 42306=N, used for computer tf-idf weight
 
 // COMMAND ----------
-
+//  tokenize the description to words
 import org.apache.spark.sql.functions.explode
 import org.apache.spark.ml.feature.Tokenizer
 
@@ -55,17 +54,7 @@ DF.show()
 
 // COMMAND ----------
 
-DF.show()
-
-// COMMAND ----------
-
 TF.show()
-
-// COMMAND ----------
-
-DF.show()
-
-// COMMAND ----------
 
 // calculate idf
 import scala.math._
@@ -93,7 +82,6 @@ val tf_idf = TF
 // COMMAND ----------
 
 tf_idf.show()
-
 
 // COMMAND ----------
 
