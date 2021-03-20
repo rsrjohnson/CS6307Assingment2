@@ -101,39 +101,3 @@ tf_idf.orderBy($"tf_idf".desc).show()
 
 // COMMAND ----------
 
-spark.sql("select tf_idf.movieId, dsn.description from tf_idf join on dropstopnew dsn where tf_idf.movieID = dsn.movieID and tf_idf.token ="horror" limit(10) .show()
-
-
-select * from (select movieID from (select Top 10 movieID from tf_idf where token ="horror" group By movieID token order By tf_idf desc)tf_idf where token ="horror" and ) where tf_idf.movieID = dsn.movieID
-
-// COMMAND ----------
-
-spark sql("select Top 10 * from tf_idf where newtoken = "horror" group By movieID newtoken order By tf_idf desc").show()
-
-// COMMAND ----------
-
-spark sql("select * from tf_idf where token ='horror'").show()
-
-// COMMAND ----------
-
-import scala.math.abs
-
-// COMMAND ----------
-
-log(100)
-
-// COMMAND ----------
-
-
-
-// COMMAND ----------
-
-log100
-
-// COMMAND ----------
-
-log10(100)
-
-// COMMAND ----------
-
-
