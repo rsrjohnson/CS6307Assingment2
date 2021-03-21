@@ -158,7 +158,11 @@ val tf_idfDF = TF
 
 // COMMAND ----------
 
+<<<<<<< HEAD
 val tf_idfvectors=tf_idfDF.groupBy("id").agg(collect_list("tf_idf").as("tf_idf_vector"))
+=======
+val tf_idfvectors=tf_idf.groupBy("id").agg(collect_list("tf_idf").as("tf_idf_vector"))
+>>>>>>> a8d6e959ec15896b513a4973a02fefbc92a0d343
 
 //finding the norm of each document
 tf_idfvectors.withColumn("norm",normUDF(col("tf_idf_vector"))).show
@@ -224,8 +228,11 @@ display(movie_meta)
 //answer to query number 8(index 7)
 display(answers(7).join(movie_meta,answers(7).col("id") === movie_meta.col("Wikipedia movie ID")).select("id","Movie name","tf_idf").orderBy(desc("tf_idf")))
 
+<<<<<<< HEAD
 
 
 // COMMAND ----------
 
+=======
+>>>>>>> a8d6e959ec15896b513a4973a02fefbc92a0d343
 
