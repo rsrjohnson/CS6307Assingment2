@@ -75,6 +75,7 @@ val named_entities=result.select($"finished_entities").as[String].rdd // getting
 
 val words=named_entities.flatMap(line => line.split(",")).map(_.replaceAll("[\\W&&[^']]", " ")).map(_.trim).filter(x=> x.length>0) //joining each line, removing selected non alphanumeric characters, trimming and removing empty characters
 
+//val final_words=words.map(_.toLowerCase).map(_.replaceAll("'",""))
 //val words=named_entities.flatMap(line => line.split(",")).map(_.replaceAll("\\W", " ")).map(_.trim).filter(x=> x.length>0) 
 
 val wordsCount=words.map(x => (x,1)).reduceByKey((x,y) => x+y) //finding words counts
@@ -85,7 +86,7 @@ wordsCount.sortBy(-_._2).collect() //reduce operation, displaying word count in 
 
 // COMMAND ----------
 
-//Part 2
+|//Part 2
 
 //import org.apache.spark.ml.feature.{RegexTokenizer, Tokenizer}
 import org.apache.spark.sql.functions._
@@ -114,7 +115,23 @@ display(movie_plots)
 
 // COMMAND ----------
 
+def arr_to_dict(words:Seq[String]):scala.collection.immutable.Map[String,Int]={
+  
+  return words.groupBy(identity).mapValues(_.length)
+   
+}
+val arr_to_dictUDF = udf(arr_to_dict _)
+
+//Dictionary of each word count per document to be used for cosine similarity 
+val words_dict=movie_plots.withColumn("words_dict",arr_to_dictUDF(col("plot_filtered"))).drop("plot_filtered")
+
+display(words_dict)
+
+// COMMAND ----------
+
 val flattened = movie_plots.withColumn("token",explode($"plot_filtered")).drop("plot_filtered")
+
+//val lltokens = flattened.groupBy("token")
 
 //finding term i frequencies by document j
 val TF = flattened.groupBy("id", "token").count().toDF("id","token","tf_ij")
@@ -132,6 +149,23 @@ DF.show
 
 // COMMAND ----------
 
+val idfFunc = udf((df:Long) =>log(42306/df))
+
+val newdf = DF.withColumn("idf",idfFunc(col("df")))
+
+newdf.show(false)
+
+//join TF and newdf, calculate the tf-idf
+val tf_idfDF = TF
+      .join(newdf, Seq("token"))
+      .withColumn("tf_idf", col("tf_ij") * col("idf")).select("id","token","tf_idf")
+
+
+tf_idfDF.show(false)
+
+
+// COMMAND ----------
+
 //Euclidean Norm 
 def norm(v:Seq[Double]):Double={
     
@@ -141,74 +175,128 @@ def norm(v:Seq[Double]):Double={
 val normUDF = udf(norm _)
 
 
-// COMMAND ----------
 
-val logresult = udf((df:Long) =>log(42306/df))
+//Euclidean Norm 
+def normD(v:Map[String,Int] ):Double={
+    
+  sqrt((v.values).map { case (x) => pow(x, 2) }.sum)
+} 
 
-val newdf = DF.withColumn("idf",logresult(col("df")))
-
-//newdf.show
-
-//join TF and newdf, calculate the tf-idf
-val tf_idfDF = TF
-      .join(newdf, Seq("token"))
-      .withColumn("tf_idf", col("tf_ij") * col("idf")).select("id","token","tf_idf")
+val normDUDF = udf(normD _)
 
 
 
 // COMMAND ----------
 
-<<<<<<< HEAD
-val tf_idfvectors=tf_idfDF.groupBy("id").agg(collect_list("tf_idf").as("tf_idf_vector"))
-=======
-val tf_idfvectors=tf_idf.groupBy("id").agg(collect_list("tf_idf").as("tf_idf_vector"))
->>>>>>> a8d6e959ec15896b513a4973a02fefbc92a0d343
+//val tf_idfvectors=tf_idfDF.groupBy("id").agg(collect_list("tf_idf").as("tf_idf_vector"))
 
+val tf_vectors=TF.groupBy("id").agg(collect_list(col("tf_ij").cast("double")).as("tf_vector"))
 //finding the norm of each document
-tf_idfvectors.withColumn("norm",normUDF(col("tf_idf_vector"))).show
+//tf_idfvectors.withColumn("norm",normUDF(col("tf_idf_vector"))).show
+
+val document_norms = tf_vectors.withColumn("norm",normUDF(col("tf_vector"))).drop("tf_vector")
+
+//document_norms.show(false)
+
+
+val normDF=words_dict.join(document_norms,Seq("id"))
+
+normDF.show
 
 // COMMAND ----------
 
-val terms = sc.textFile("/FileStore/tables/user_terms.txt").map(_.toLowerCase).map(x=>x.split(" "))
+//val terms = sc.textFile("/FileStore/tables/user_terms.txt").map(_.toLowerCase).map(x=>x.split(" "))
 
-val flat_terms = terms.toDF("query").withColumn("token",explode($"query"))
+var terms = sc.textFile("/FileStore/tables/user_terms.txt").map(_.toLowerCase).map(x=>x.split(" ")).toDF("query")
 
-//preparing the terms for cosine similarity
-val queries_weights = flat_terms.groupBy("query", "token").count().toDF("query","token","weight")
+val remover2 = new StopWordsRemover()
+  .setInputCol("query")
+  .setOutputCol("query_filtered")
 
-//queries_weights.show(30)
+//removing stop words from queries
+terms=remover2.transform(terms).drop("query") //removing stopwords and dropping not processed queries
 
-//finding norms of the queries
-val queries_norms=queries_weights.groupBy("query").agg(normUDF(collect_list(col("weight").cast("double"))).as("norm"))
 
-display(queries_norms)
 
+
+terms.show(false)
+
+
+// COMMAND ----------
+
+terms=terms.withColumn("words_dict",arr_to_dictUDF(col("query_filtered")))
+
+
+
+terms=terms.withColumn("norm",normDUDF(col("words_dict")))
+
+
+// COMMAND ----------
+
+def dot_prod(term_dic:Map[String,Int],doc_dict:Map[String,Int]):Double=
+{
+  var result=0
+  
+  for ((token,weight) <- term_dic){
+    if(doc_dict.contains(token)){
+      result=result+doc_dict(token)*weight
+    }
+  
+  }
+  return result
+}
+
+val dot_prodUDF = udf(dot_prod _)
 
 
 
 // COMMAND ----------
 
-def query_results(search:Array[String], datafr : org.apache.spark.sql.DataFrame):org.apache.spark.sql.DataFrame={
+def query_results(search:Array[String],  tf_idfDF: org.apache.spark.sql.DataFrame,normDF:org.apache.spark.sql.DataFrame):org.apache.spark.sql.DataFrame={
    
-  if(search.length==1){
+  val query_dict=search.groupBy(identity).mapValues(_.length)
+  
+  if(query_dict.size==1){
+    
     //single term query
-    val qDF = datafr.filter($"token"===search(0))   
+    val qDF = tf_idfDF.filter($"token"===query_dict.keys.toList(0) )   
+    
     return qDF.orderBy(desc("tf_idf")).limit(10)    
   }
-  else{
-    //cosine similarity answer to be implemented
-    return datafr
+  else{    
+      
+  
+    val ext_Norm=normDF.withColumn("query_dict",typedLit(query_dict))
+    
+    
+    
+    val query_norm=sqrt((query_dict.values).map { case (x) => pow(x, 2) }.sum)
+    
+    val qDF=ext_Norm.withColumn("cosine_sim",dot_prodUDF('query_dict,'words_dict)/('norm*query_norm)).select("id","cosine_sim")
+    
+    return qDF.orderBy(desc("cosine_sim")).limit(10)  
   }
   
 }
 
+// COMMAND ----------
 
+//answer to the user terms, we use this answers to look for the movie name
+val answers=terms.select($"query_filtered").as[Array[String]].rdd.collect.map(x=>query_results(x,tf_idfDF,normDF))
 
 // COMMAND ----------
 
-val answers=terms.collect().map(x=>query_results(x,tf_idfDF))
+val flat_terms = terms.withColumn("token",explode($"query_filtered"))
 
-display(answers(7))
+//preparing the terms for cosine similarity
+val queries_weights = flat_terms.groupBy("query_filtered", "token").count().toDF("query","token","weight")
+
+queries_weights.show(30,false)
+
+//finding norms of the queries
+val queries_norms=queries_weights.groupBy("query").agg(normUDF(collect_list(col("weight").cast("double"))).as("norm"))
+
+queries_norms.show(false)
 
 // COMMAND ----------
 
@@ -225,14 +313,15 @@ display(movie_meta)
 
 // COMMAND ----------
 
-//answer to query number 8(index 7)
-display(answers(7).join(movie_meta,answers(7).col("id") === movie_meta.col("Wikipedia movie ID")).select("id","Movie name","tf_idf").orderBy(desc("tf_idf")))
-
-<<<<<<< HEAD
-
-
-// COMMAND ----------
-
-=======
->>>>>>> a8d6e959ec15896b513a4973a02fefbc92a0d343
+var k=0
+//answer to all the queries
+for(query<-terms.select("query_filtered").as[Array[String]].collect){
+  println("Query: " + query.mkString(", "))
+  if(query.length==1)
+    answers(k).join(movie_meta,answers(k).col("id") === movie_meta.col("Wikipedia movie ID")).select("id","Movie name","tf_idf").orderBy(desc("tf_idf")).show(false)
+  else
+    answers(k).join(movie_meta,answers(k).col("id") === movie_meta.col("Wikipedia movie ID")).select("id","Movie name","cosine_sim").orderBy(desc("cosine_sim")).show(false)
+  
+  k=k+1
+}
 
