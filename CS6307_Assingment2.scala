@@ -50,7 +50,7 @@ val finisher = new Finisher()
   .setValueSplitSymbol("#")
 
 
-//Setting up pipeline
+//Setting up the pipeline
 val pipeline = new Pipeline().setStages(
   Array(
  document, 
@@ -70,7 +70,7 @@ val book_orig = sc.textFile("/FileStore/tables/sherlock_holmes.txt").filter(row 
 
 val bookDF=book_orig.toDS.toDF( "text") //preparing data frame to be transformed
 
-val result = pipeline.fit(bookDF).transform(bookDF) //pipeline is already pre-trained, we only need to fit pur data frame
+val result = pipeline.fit(bookDF).transform(bookDF) //pipeline is already pre-trained, we only need to fit our data frame
 
 val named_entities=result.select($"finished_entities").as[String].rdd // getting named entities and converting to rdd
 
@@ -176,7 +176,24 @@ val normDF=words_dict.join(document_norms,Seq("id"))
 
 // COMMAND ----------
 
-//User's terms
+//Original user's terms, stop words will be removed
+
+//comedies
+//action films
+//most popular
+//adventure films
+//musicals
+//dramas
+//romantic films
+//Horror
+//Mystery
+//Thriller
+//Western
+//Fantasy
+//fiction
+//action films with action stars
+//funny movie with action scenes
+
 var terms = sc.textFile("/FileStore/tables/user_terms.txt").map(_.toLowerCase).map(x=>x.split(" ")).toDF("query")
 
 //removing stop words from queries
@@ -239,7 +256,7 @@ def query_results(search:Array[String],  tf_idfDF: org.apache.spark.sql.DataFram
 // COMMAND ----------
 
 //Answers to the user's terms, later we use this answers to look for the movie name
-val answers=terms_processed.select($"query_filtered").as[Array[String]].rdd.collect.map(x=>query_results(x,tf_idfDF,normDF))
+val answers=terms.select($"query_filtered").as[Array[String]].rdd.collect.map(x=>query_results(x,tf_idfDF,normDF))
 
 // COMMAND ----------
 
