@@ -3,7 +3,6 @@
 //Team Members:Randy Suarez Rodes rxs179030 and Ping Chen pxc190026
 
 //Part 1
-
 //Packages and libraries
 import com.johnsnowlabs.nlp.annotator._
 import com.johnsnowlabs.nlp.annotators.ner.NerConverter
@@ -12,6 +11,8 @@ import com.johnsnowlabs.util.Benchmark
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.SparkSession
 import com.johnsnowlabs.nlp.SparkNLP
+
+// COMMAND ----------
 
 //Preparing the annotation methods
 val document = new DocumentAssembler()
@@ -93,11 +94,13 @@ wordsCount.sortBy(-_._2).collect() //reduce operation, displaying word count in 
 // COMMAND ----------
 
 //Part 2
-
+//Packages and libraries
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature.StopWordsRemover
 import spark.implicits._
 import scala.math._
+
+// COMMAND ----------
 
 //separating id and plot, changing non alpha numeric characters (except apostrophe) to " ", replacing apostrophe by "",  converting to lower case, wrapping all into a DF 
 var movie_plots=sc.textFile("/FileStore/tables/plot_summaries.txt").map(line => line.split("\t")).map(x=>(x(0),x(1).replaceAll("[\\W&&[^']]"," ").replaceAll("'","").split(" ").filter(word=>word.length>1).map(_.toLowerCase))).toDF("id","plot")
