@@ -68,17 +68,21 @@ val pipeline = new Pipeline().setStages(
 
 val book_orig = sc.textFile("/FileStore/tables/sherlock_holmes.txt").filter(row => !row.isEmpty) //ignoring empty lines
 
-val bookDF=book_orig.toDS.toDF( "text") //preparing data frame to be transformed
+//Preprocessing data, removing special characters and replacing non alphanumeric characters with space
+val book_processed=book_orig.map(line=>line.replaceAll("'`¨“”", "").replaceAll("\\W+", " ").trim)
 
-val result = pipeline.fit(bookDF).transform(bookDF) //pipeline is already pre-trained, we only need to fit our data frame
+val bookDF=book_processed.toDS.toDF( "text") //preparing data frame to be transformed
 
-val named_entities=result.select($"finished_entities").as[String].rdd // getting named entities and converting to rdd
+val result = pipeline.fit(bookDF).transform(bookDF) //pipeline is already pre-trained, we only need to fit pur data frame
+
+val named_entities=result.select($"finished_entities").as[String].rdd //getting named entities and converting to rdd
+
 
 
 // COMMAND ----------
 
-//joining each line, removing special characters , replacing non alphanumeric characters with space, trimming and removing empty and single characters
-val words=named_entities.flatMap(line => line.split(",")).map(_.replaceAll("'`¨“”", "")).map(_.replaceAll("\\W+", " ")).map(_.replaceAll("_","")).map(_.trim).filter(x=> x.length>1)
+//joining each line, replacing non alphanumeric characters with space, trimming and removing empty and single characters
+val words=named_entities.flatMap(line => line.split(",")).map(_.replaceAll("\\W+", " ")).map(_.replaceAll("_","")).map(_.trim).filter(x=> x.length>1)
 
 val wordsCount=words.map(x => (x,1)).reduceByKey((x,y) => x+y) //finding words counts
 
@@ -205,11 +209,11 @@ terms=remover2.transform(terms).drop("query") //removing stopwords and dropping 
 
 // COMMAND ----------
 
-//Function to find the dot product of two vectors
+//Function to find the dot product of two dictionaries of words
 def dot_prod(term_dic:Map[String,Int],doc_dict:Map[String,Int]):Double=
 {
   var result=0
-  
+  //only if the term is present, we find the product of the term frequency in the query times the term frequency in the document 
   for ((token,weight) <- term_dic){
     if(doc_dict.contains(token)){
       result=result+doc_dict(token)*weight
@@ -255,7 +259,7 @@ def query_results(search:Array[String],  tf_idfDF: org.apache.spark.sql.DataFram
 
 // COMMAND ----------
 
-//Answers to the user's terms, later we use this answers to look for the movie name
+//Answers to the user's queries, later we use this answers to look for the movie name
 val answers=terms.select($"query_filtered").as[Array[String]].rdd.collect.map(x=>query_results(x,tf_idfDF,normDF))
 
 // COMMAND ----------

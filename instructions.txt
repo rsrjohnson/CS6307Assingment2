@@ -1,6 +1,15 @@
+CS6307_Assingment 2
+Team Members:Randy Suarez Rodes rxs179030 and Ping Chen pxc190026
+
+
+Notebook link: https://databricks-prod-cloudfront.cloud.databricks.com/public/4027ec902e239c93eaaa8714f173bcfc/8771279151530269/2274348907161712/7293523972810589/latest.html
+
 Instructions:
 
--Create a cluster with scala version 2.11, Databricks Runtime 6.4 Extended Support is prefered.
--Install the spark-nlp package from JohnSnowLabs:spark-nlp version 2.7.5 using Maven source.
+-Create a cluster with Scala Version 2.11 - Spark Version 2.4.5, Databricks Runtime 6.4 Extended Support is preferred.
 
--Part 1 and Part 2 of the project are included in the same notebook. Some dependencies will be downloaded and isntall on the first run. The running time of both parts can take arround 15 minutes.
+-Install the spark-nlp package from JohnSnowLabs:spark-nlp version 2.7.5 using Maven source (you can use the coordinates: JohnSnowLabs:spark-nlp:2.7.5 directly).
+
+-Part 1 and Part 2 of the project are included in the same notebook. Some dependencies will be downloaded and install on the first run. The running time of both parts together can take arround 15 minutes.
+
+-For part 1 use sherlock_holmes.txt as the book, for part 2 use user_terms.txt as the user queries.
