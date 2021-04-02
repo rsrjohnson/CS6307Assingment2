@@ -1,0 +1,6 @@
+Instructions:
+
+-Create a cluster with scala version 2.11, Databricks Runtime 6.4 Extended Support is prefered.
+-Install JohnSnowLabs:spark-nlp:2.7.5 using Maven source.
+
+-Part 1 and Part 2 of the project are included in the same notebook. The running time of both parts can take a couple of minutes.
