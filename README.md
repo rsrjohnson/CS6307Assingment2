@@ -1,5 +1,5 @@
 # CS6307Assingment2
-Repo for CS6307 Assignment 2 - Big Data Management and Analytics
+Repo for CS6307 Project 2 - Big Data Management and Analytics
 
 ## Part 1
 Extract Named Entities from a book using Natural Language Processing (NLP).
