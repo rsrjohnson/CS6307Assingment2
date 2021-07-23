@@ -1,4 +1,4 @@
-# CS6307Assingment2
+# CS6307Project2
 Repo for CS6307 Project 2 - Big Data Management and Analytics
 
 ## Part 1
